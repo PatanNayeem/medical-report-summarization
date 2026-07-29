@@ -1,0 +1,32 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Environment variables & secrets
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Databases & SQLite
+*.sqlite
+*.db
+
+# Uploaded medical files & generated output PDFs
+uploads/*
+!uploads/.gitkeep
+generated_summaries/*
+!generated_summaries/.gitkeep
+
+# ChromaDB vector persistent directory
+chroma_db/
+
+# IDE files
+.vscode/
+.idea/
+*.swp

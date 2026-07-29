@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AI Medical Report Summarization System{% endblock %}</title>
+    <!-- Google Fonts: Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Main Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col">
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="{{ url_for('dashboard') }}" class="nav-brand">
+                <i class="fa-solid fa-heart-pulse brand-icon"></i>
+                <span class="brand-text">MedBrief <span class="brand-badge">Mistral-7B RAG</span></span>
+            </a>
+            
+            {% if session.get('user_id') %}
+            <div class="nav-links">
+                <a href="{{ url_for('dashboard') }}" class="nav-item {% if request.endpoint == 'dashboard' %}active{% endif %}">
+                    <i class="fa-solid fa-chart-pie"></i> Dashboard
+                </a>
+                <a href="{{ url_for('patients') }}" class="nav-item {% if request.endpoint == 'patients' %}active{% endif %}">
+                    <i class="fa-solid fa-hospital-user"></i> Patients
+                </a>
+                <a href="{{ url_for('upload_report') }}" class="nav-item {% if request.endpoint == 'upload_report' %}active{% endif %}">
+                    <i class="fa-solid fa-file-medical"></i> Upload Report
+                </a>
+            </div>
+            
+            <div class="nav-user">
+                <div class="user-badge">
+                    <i class="fa-solid fa-user-doctor"></i>
+                    <span>Dr. {{ session.get('username') }}</span>
+                </div>
+                <a href="{{ url_for('logout') }}" class="btn-logout" title="Logout">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </a>
+            </div>
+            {% else %}
+            <div class="nav-links">
+                <a href="{{ url_for('login') }}" class="btn-primary">Sign In</a>
+                <a href="{{ url_for('register') }}" class="btn-secondary">Register</a>
+            </div>
+            {% endif %}
+        </div>
+    </nav>
+
+    <!-- Main Content Body -->
+    <main class="main-wrapper">
+        <div class="content-container">
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-container">
+                        {% for category, message in messages %}
+                            <div class="flash-alert alert-{{ category }}">
+                                <i class="fa-solid {% if category == 'success' %}fa-circle-check{% elif category == 'danger' %}fa-circle-xmark{% else %}fa-circle-info{% endif %}"></i>
+                                <span>{{ message }}</span>
+                                <button type="button" class="alert-close" onclick="this.parentElement.remove()">&times;</button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <p>&copy; 2026 AI Medical Report Summarization System | Powered by LangChain, ChromaDB & Mistral-7B LLM</p>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

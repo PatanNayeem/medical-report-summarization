@@ -1,0 +1,12 @@
+Flask
+Werkzeug
+pymongo
+langchain
+langchain-community
+chromadb
+huggingface-hub
+sentence-transformers
+pypdf
+reportlab
+python-dotenv
+requests

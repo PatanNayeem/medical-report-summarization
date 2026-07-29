@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}Patient Management - Medical Report Summarizer{% endblock %}
+
+{% block content %}
+<div class="patients-page">
+    <div class="dashboard-header glass-panel">
+        <div>
+            <h1 class="page-title"><i class="fa-solid fa-hospital-user"></i> Patient Management System</h1>
+            <p class="page-subtitle">Register and manage patient clinical profiles for AI report summarization</p>
+        </div>
+        <button class="btn-primary" onclick="document.getElementById('add-patient-modal').classList.remove('hidden')">
+            <i class="fa-solid fa-plus"></i> Add New Patient
+        </button>
+    </div>
+
+    <!-- Patient Directory Cards Grid -->
+    <div class="patients-grid">
+        {% for p in patients %}
+        <div class="patient-card glass-panel">
+            <div class="patient-card-header">
+                <div class="patient-avatar-large">
+                    <i class="fa-solid fa-user-doctor"></i>
+                </div>
+                <div>
+                    <h3>{{ p.name }}</h3>
+                    <span class="code-badge">{{ p.patient_code }}</span>
+                </div>
+            </div>
+            
+            <div class="patient-card-details">
+                <div class="detail-row">
+                    <span><i class="fa-solid fa-cake-candles"></i> Age / Gender:</span>
+                    <strong>{{ p.age }} Yrs / {{ p.gender }}</strong>
+                </div>
+                <div class="detail-row">
+                    <span><i class="fa-solid fa-droplet"></i> Blood Group:</span>
+                    <strong>{{ p.blood_group or 'N/A' }}</strong>
+                </div>
+                <div class="detail-row">
+                    <span><i class="fa-solid fa-phone"></i> Contact:</span>
+                    <strong>{{ p.contact or 'N/A' }}</strong>
+                </div>
+                <div class="detail-row">
+                    <span><i class="fa-solid fa-notes-medical"></i> Medical History:</span>
+                    <span>{{ p.medical_history or 'No prior history logged.' }}</span>
+                </div>
+            </div>
+
+            <div class="patient-card-actions">
+                <a href="{{ url_for('upload_report') }}?patient_id={{ p.id }}" class="btn-secondary w-full">
+                    <i class="fa-solid fa-file-medical"></i> Upload Report for {{ p.name.split()[0] }}
+                </a>
+            </div>
+        </div>
+        {% else %}
+        <div class="empty-state glass-panel w-full">
+            <i class="fa-solid fa-user-slash empty-icon"></i>
+            <p>No patients registered yet.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Modal: Add Patient -->
+<div id="add-patient-modal" class="modal-backdrop hidden">
+    <div class="modal-card glass-panel">
+        <div class="modal-header">
+            <h3><i class="fa-solid fa-user-plus"></i> Add New Patient Profile</h3>
+            <button type="button" class="btn-close" onclick="document.getElementById('add-patient-modal').classList.add('hidden')">&times;</button>
+        </div>
+        
+        <form action="{{ url_for('patients') }}" method="POST" class="modal-form">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Full Patient Name *</label>
+                    <input type="text" name="name" class="form-input" placeholder="e.g. John Doe" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Age *</label>
+                    <input type="number" name="age" class="form-input" placeholder="e.g. 45" required min="1" max="120">
+                </div>
+
+                <div class="form-group">
+                    <label>Gender *</label>
+                    <select name="gender" class="form-input">
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Blood Group</label>
+                    <select name="blood_group" class="form-input">
+                        <option value="A+">A+</option>
+                        <option value="A-">A-</option>
+                        <option value="B+">B+</option>
+                        <option value="B-">B-</option>
+                        <option value="O+">O+</option>
+                        <option value="O-">O-</option>
+                        <option value="AB+">AB+</option>
+                        <option value="AB-">AB-</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Contact Phone / Email</label>
+                <input type="text" name="contact" class="form-input" placeholder="+1 (555) 000-0000">
+            </div>
+
+            <div class="form-group">
+                <label>Pre-existing Medical History & Allergies</label>
+                <textarea name="medical_history" class="form-input form-textarea" placeholder="e.g. Hypertension, Penicillin allergy, Type 2 Diabetes..."></textarea>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="document.getElementById('add-patient-modal').classList.add('hidden')">Cancel</button>
+                <button type="submit" class="btn-primary">Save Patient Record</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

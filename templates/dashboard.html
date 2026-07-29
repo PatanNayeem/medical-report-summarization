@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - AI Medical Report Summarization System{% endblock %}
+
+{% block content %}
+<div class="dashboard-page">
+    <!-- Header Greeting -->
+    <div class="dashboard-header glass-panel">
+        <div>
+            <h1 class="page-title">Medical Analytics & AI Summarization Dashboard</h1>
+            <p class="page-subtitle">RAG Vector Search (ChromaDB) & HuggingFace Mistral-7B Clinical Engine</p>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('upload_report') }}" class="btn-primary glow-btn">
+                <i class="fa-solid fa-cloud-arrow-up"></i> Upload Medical PDF
+            </a>
+            <a href="{{ url_for('patients') }}" class="btn-secondary">
+                <i class="fa-solid fa-user-plus"></i> New Patient
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats Cards Grid -->
+    <div class="stats-grid">
+        <div class="stat-card glass-panel">
+            <div class="stat-icon icon-blue">
+                <i class="fa-solid fa-users-medical"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-label">Total Patients</span>
+                <span class="stat-value">{{ total_patients }}</span>
+            </div>
+        </div>
+
+        <div class="stat-card glass-panel">
+            <div class="stat-icon icon-emerald">
+                <i class="fa-solid fa-file-waveform"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-label">Analyzed Reports</span>
+                <span class="stat-value">{{ total_reports }}</span>
+            </div>
+        </div>
+
+        <div class="stat-card glass-panel">
+            <div class="stat-icon icon-purple">
+                <i class="fa-solid fa-database"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-label">ChromaDB Vectors</span>
+                <span class="stat-value">Active Index</span>
+            </div>
+        </div>
+
+        <div class="stat-card glass-panel">
+            <div class="stat-icon icon-amber">
+                <i class="fa-solid fa-brain-circuit"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-label">AI Model</span>
+                <span class="stat-value">Mistral-7B</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Two-Column Grid: Recent Reports & Quick Patients -->
+    <div class="content-grid">
+        <!-- Main Section: Recent Reports -->
+        <div class="grid-card glass-panel">
+            <div class="card-header">
+                <h3><i class="fa-solid fa-notes-medical"></i> Recent Medical Reports & Summaries</h3>
+                <a href="{{ url_for('upload_report') }}" class="link-btn">Analyze New <i class="fa-solid fa-chevron-right"></i></a>
+            </div>
+
+            {% if recent_reports %}
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Patient Name</th>
+                            <th>Code</th>
+                            <th>Report File</th>
+                            <th>Category</th>
+                            <th>Risk Level</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in recent_reports %}
+                        <tr>
+                            <td><strong>{{ r.patient_name }}</strong></td>
+                            <td><span class="code-badge">{{ r.patient_code }}</span></td>
+                            <td>{{ r.filename }}</td>
+                            <td><span class="tag-pill">{{ r.report_type }}</span></td>
+                            <td>
+                                {% if r.has_summary %}
+                                    <span class="badge risk-{{ r.risk_level | lower }}">
+                                        {{ r.risk_level }} Risk
+                                    </span>
+                                {% else %}
+                                    <span class="badge risk-pending">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('report_detail', report_id=r.id) }}" class="btn-table">
+                                    <i class="fa-solid fa-microscope"></i> View Summary
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fa-solid fa-folder-open empty-icon"></i>
+                <p>No medical reports uploaded yet.</p>
+                <a href="{{ url_for('upload_report') }}" class="btn-primary mt-3">Upload First PDF Report</a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar Section: Patient Directory Quick View -->
+        <div class="grid-card glass-panel">
+            <div class="card-header">
+                <h3><i class="fa-solid fa-hospital-user"></i> Active Patients</h3>
+                <a href="{{ url_for('patients') }}" class="link-btn">View All</a>
+            </div>
+
+            <div class="patient-list-compact">
+                {% for p in patients[:6] %}
+                <div class="patient-compact-item">
+                    <div class="patient-avatar">
+                        <i class="fa-solid fa-user-injured"></i>
+                    </div>
+                    <div class="patient-compact-info">
+                        <strong>{{ p.name }}</strong>
+                        <small>{{ p.age }} Yrs • {{ p.gender }} • {{ p.blood_group or 'Blood N/A' }}</small>
+                    </div>
+                    <span class="code-badge">{{ p.patient_code }}</span>
+                </div>
+                {% else %}
+                <p class="text-muted">No patient records found.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+
+{% block title %}Medical Report Summary - {{ patient.name }}{% endblock %}
+
+{% block content %}
+<div class="report-detail-page">
+    <!-- Header Banner -->
+    <div class="dashboard-header glass-panel">
+        <div>
+            <div class="flex items-center gap-3">
+                <h1 class="page-title">Clinical AI Report Summary</h1>
+                <span class="badge risk-{{ summary.risk_level | lower }}">
+                    <i class="fa-solid fa-shield-halved"></i> {{ summary.risk_level }} Risk
+                </span>
+            </div>
+            <p class="page-subtitle">Report File: {{ report.filename }} | Uploaded: {{ report.uploaded_at[:10] }}</p>
+        </div>
+
+        <div class="header-actions">
+            {% if pdf_filename %}
+            <a href="{{ url_for('download_summary', filename=pdf_filename) }}" class="btn-primary glow-btn">
+                <i class="fa-solid fa-file-pdf"></i> Download Summary PDF
+            </a>
+            {% endif %}
+            <a href="{{ url_for('dashboard') }}" class="btn-secondary">
+                <i class="fa-solid fa-arrow-left"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Patient Meta Bar -->
+    <div class="patient-bar glass-panel">
+        <div class="patient-bar-item">
+            <i class="fa-solid fa-user-injured text-blue-400"></i>
+            <div>
+                <small>Patient Name</small>
+                <strong>{{ patient.name }}</strong>
+            </div>
+        </div>
+
+        <div class="patient-bar-item">
+            <i class="fa-solid fa-barcode text-purple-400"></i>
+            <div>
+                <small>Patient Code</small>
+                <strong class="code-badge">{{ patient.patient_code }}</strong>
+            </div>
+        </div>
+
+        <div class="patient-bar-item">
+            <i class="fa-solid fa-cake-candles text-emerald-400"></i>
+            <div>
+                <small>Age / Gender</small>
+                <strong>{{ patient.age }} Yrs / {{ patient.gender }}</strong>
+            </div>
+        </div>
+
+        <div class="patient-bar-item">
+            <i class="fa-solid fa-droplet text-red-400"></i>
+            <div>
+                <small>Blood Group</small>
+                <strong>{{ patient.blood_group or 'N/A' }}</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main 2-Column Section: Summary Cards & RAG Chat Assistant -->
+    <div class="report-grid">
+        <!-- Column 1: AI Clinical Summary Output -->
+        <div class="summary-column space-y-6">
+            <!-- Executive Brief -->
+            <div class="glass-panel summary-box border-left-blue">
+                <div class="box-header">
+                    <h3><i class="fa-solid fa-square-poll-vertical text-blue-400"></i> 1. Executive Briefing</h3>
+                </div>
+                <p class="summary-text">{{ summary.executive_summary }}</p>
+            </div>
+
+            <!-- Clinical Impressions & Diagnoses -->
+            <div class="glass-panel summary-box border-left-purple">
+                <div class="box-header">
+                    <h3><i class="fa-solid fa-stethoscope text-purple-400"></i> 2. Clinical Impression & Diagnoses</h3>
+                </div>
+                <ul class="summary-list">
+                    {% if summary.clinical_impression is iterable and summary.clinical_impression is not string %}
+                        {% for item in summary.clinical_impression %}
+                            <li><i class="fa-solid fa-angle-right"></i> {{ item }}</li>
+                        {% endfor %}
+                    {% else %}
+                        <li><i class="fa-solid fa-angle-right"></i> {{ summary.clinical_impression }}</li>
+                    {% endif %}
+                </ul>
+            </div>
+
+            <!-- Vital Signs & Lab Metrics Table -->
+            <div class="glass-panel summary-box border-left-emerald">
+                <div class="box-header">
+                    <h3><i class="fa-solid fa-chart-simple text-emerald-400"></i> 3. Key Vital Signs & Lab Parameters</h3>
+                </div>
+                <div class="metrics-grid">
+                    {% for m in summary.key_metrics %}
+                    <div class="metric-pill">
+                        <span class="metric-label">{{ m.name }}</span>
+                        <span class="metric-value">{{ m.value }}</span>
+                        <small class="metric-unit">{{ m.unit }}</small>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Prescribed Medications & Treatments -->
+            <div class="glass-panel summary-box border-left-amber">
+                <div class="box-header">
+                    <h3><i class="fa-solid fa-pills text-amber-400"></i> 4. Prescribed Medications & Treatment Plan</h3>
+                </div>
+                <ul class="summary-list">
+                    {% if summary.medications_and_treatments is iterable and summary.medications_and_treatments is not string %}
+                        {% for med in summary.medications_and_treatments %}
+                            <li><i class="fa-solid fa-prescription-bottle-medical"></i> {{ med }}</li>
+                        {% endfor %}
+                    {% else %}
+                        <li><i class="fa-solid fa-prescription-bottle-medical"></i> {{ summary.medications_and_treatments }}</li>
+                    {% endif %}
+                </ul>
+            </div>
+
+            <!-- Critical Warnings & Recommendations -->
+            <div class="glass-panel summary-box border-left-red">
+                <div class="box-header">
+                    <h3><i class="fa-solid fa-triangle-exclamation text-red-400"></i> 5. Warning Markers & Follow-Up Advice</h3>
+                </div>
+                <ul class="summary-list text-red-200">
+                    {% if summary.recommendations is iterable and summary.recommendations is not string %}
+                        {% for rec in summary.recommendations %}
+                            <li><i class="fa-solid fa-circle-exclamation"></i> {{ rec }}</li>
+                        {% endfor %}
+                    {% else %}
+                        <li><i class="fa-solid fa-circle-exclamation"></i> {{ summary.recommendations }}</li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+
+        <!-- Column 2: RAG Chat Assistant & Raw Text Viewer -->
+        <div class="chat-column space-y-6">
+            <!-- RAG Interactive Assistant -->
+            <div class="glass-panel chat-box">
+                <div class="chat-header">
+                    <div>
+                        <h3><i class="fa-solid fa-robot text-cyan-400"></i> Ask Doctor AI (RAG Assistant)</h3>
+                        <p class="text-xs text-slate-400">Ask any question grounded in this specific report's context</p>
+                    </div>
+                    <span class="rag-chip"><i class="fa-solid fa-bolt"></i> Mistral-7B RAG</span>
+                </div>
+
+                <!-- Chat Suggested Prompts -->
+                <div class="prompt-chips">
+                    <button type="button" class="chip-btn" onclick="sendQuickPrompt('What medications are prescribed?')">
+                        Medications?
+                    </button>
+                    <button type="button" class="chip-btn" onclick="sendQuickPrompt('What are the key risk factors?')">
+                        Risk Factors?
+                    </button>
+                    <button type="button" class="chip-btn" onclick="sendQuickPrompt('Summarize vital signs and lab results')">
+                        Vitals & Labs?
+                    </button>
+                </div>
+
+                <!-- Chat History Box -->
+                <div class="chat-messages" id="chat-messages">
+                    <div class="chat-message assistant-msg">
+                        <div class="msg-avatar"><i class="fa-solid fa-user-doctor"></i></div>
+                        <div class="msg-content">
+                            Hello! I am your AI Medical Assistant. Ask me anything about Dr. notes, lab values, or diagnoses for <strong>{{ patient.name }}</strong>.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat Input Form -->
+                <form id="chat-form" class="chat-input-row" data-report-id="{{ report.id }}">
+                    <input type="text" id="chat-input" class="chat-input" placeholder="Ask a question about this medical report..." required autocomplete="off">
+                    <button type="submit" class="btn-chat-send">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Raw Extracted Document Viewer -->
+            <div class="glass-panel doc-viewer-box">
+                <div class="box-header">
+                    <h3><i class="fa-solid fa-file-lines text-slate-400"></i> Raw Extracted Text</h3>
+                    <button class="btn-sm" onclick="document.getElementById('raw-text-content').classList.toggle('hidden')">
+                        Toggle Text
+                    </button>
+                </div>
+                <div id="raw-text-content" class="raw-text-box">
+                    <pre>{{ report.extracted_text }}</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

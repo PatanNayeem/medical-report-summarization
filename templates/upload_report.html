@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Medical Report - AI Summarizer{% endblock %}
+
+{% block content %}
+<div class="upload-page max-w-4xl mx-auto">
+    <div class="dashboard-header glass-panel">
+        <div>
+            <h1 class="page-title"><i class="fa-solid fa-file-medical"></i> Upload PDF Medical Report</h1>
+            <p class="page-subtitle">RAG PDF Parser, ChromaDB Vector Indexing & Mistral-7B Clinical Summarizer</p>
+        </div>
+    </div>
+
+    <div class="upload-card glass-panel">
+        <form action="{{ url_for('upload_report') }}" method="POST" enctype="multipart/form-data" id="upload-form">
+            <!-- Step 1: Patient Selection -->
+            <div class="form-group mb-6">
+                <label for="patient_id" class="form-label"><i class="fa-solid fa-user-injured"></i> Select Patient Record *</label>
+                <select name="patient_id" id="patient_id" class="form-input text-lg" required>
+                    <option value="" disabled selected>-- Select a Patient --</option>
+                    {% for p in patients %}
+                        <option value="{{ p.id }}" {% if request.args.get('patient_id') == p.id %}selected{% endif %}>
+                            {{ p.name }} ({{ p.patient_code }}) - Age: {{ p.age }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Step 2: Report Type -->
+            <div class="form-group mb-6">
+                <label for="report_type" class="form-label"><i class="fa-solid fa-tags"></i> Clinical Category</label>
+                <select name="report_type" id="report_type" class="form-input">
+                    <option value="Cardiology & Lab Report">Cardiology & Lab Report</option>
+                    <option value="MRI & Radiology Diagnostic">MRI & Radiology Diagnostic</option>
+                    <option value="Pathology & Blood Work">Pathology & Blood Work</option>
+                    <option value="General Discharge Summary">General Discharge Summary</option>
+                    <option value="Oncology Audit">Oncology Audit</option>
+                </select>
+            </div>
+
+            <!-- Step 3: Drag & Drop PDF File -->
+            <div class="form-group mb-6">
+                <label class="form-label"><i class="fa-solid fa-file-pdf"></i> Upload Medical PDF Document</label>
+                <div class="drop-zone" id="drop-zone">
+                    <i class="fa-solid fa-cloud-arrow-up drop-icon"></i>
+                    <h3>Drag & Drop PDF file here or <span class="browse-link">Browse Files</span></h3>
+                    <p class="text-sm text-slate-400 mt-1">Supports PDF, TXT (Max 25MB)</p>
+                    <input type="file" name="report_file" id="report_file" accept=".pdf,.txt" class="hidden-file-input">
+                    <div id="file-info" class="file-info-badge hidden">
+                        <i class="fa-solid fa-file-pdf"></i> <span id="file-name-display"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="divider-text"><span>OR PASTE CLINICAL NOTES MANUALLY</span></div>
+
+            <!-- Manual Text Input -->
+            <div class="form-group mb-6">
+                <label for="manual_text" class="form-label"><i class="fa-solid fa-align-left"></i> Paste Medical Report Text / Doctor Notes</label>
+                <textarea name="manual_text" id="manual_text" class="form-input form-textarea" rows="6" placeholder="Paste full doctor notes, vital stats, lab results or patient discharge summaries here..."></textarea>
+            </div>
+
+            <!-- Submit Button with Spinner -->
+            <button type="submit" class="btn-primary w-full text-lg py-3 glow-btn" id="submit-btn">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Extract & Generate AI Clinical Summary
+            </button>
+        </form>
+
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="loading-overlay hidden">
+            <div class="spinner-glow"></div>
+            <h3 class="mt-4 font-bold text-xl">Processing Medical Report...</h3>
+            <p class="text-slate-400 mt-2" id="loading-step-text">Parsing PDF -> Extracting NLP Text -> ChromaDB Embedding -> Mistral-7B Summarizer</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

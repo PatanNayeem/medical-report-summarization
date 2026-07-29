@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Register - Medical Report Summarization System{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card glass-panel">
+        <div class="auth-header">
+            <div class="auth-icon-circle">
+                <i class="fa-solid fa-user-plus"></i>
+            </div>
+            <h2>Register Staff Account</h2>
+            <p>Create credentials for clinical report summarization access</p>
+        </div>
+
+        <form action="{{ url_for('register') }}" method="POST" class="auth-form">
+            <div class="form-group">
+                <label for="username"><i class="fa-solid fa-user"></i> Username</label>
+                <input type="text" id="username" name="username" class="form-input" placeholder="e.g. dr_smith" required>
+            </div>
+
+            <div class="form-group">
+                <label for="email"><i class="fa-solid fa-envelope"></i> Medical Email</label>
+                <input type="email" id="email" name="email" class="form-input" placeholder="dr.smith@hospital.org" required>
+            </div>
+
+            <div class="form-group">
+                <label for="role"><i class="fa-solid fa-id-card"></i> Clinical Role</label>
+                <select id="role" name="role" class="form-input">
+                    <option value="Doctor" selected>Doctor / Physician</option>
+                    <option value="Radiologist">Radiologist / Pathologist</option>
+                    <option value="Medical Assistant">Medical Assistant</option>
+                    <option value="Researcher">Medical Researcher</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="password"><i class="fa-solid fa-lock"></i> Password</label>
+                <input type="password" id="password" name="password" class="form-input" placeholder="••••••••" required>
+            </div>
+
+            <button type="submit" class="btn-submit">
+                <span>Create Doctor Account</span>
+                <i class="fa-solid fa-check"></i>
+            </button>
+        </form>
+
+        <div class="auth-footer">
+            <p>Already registered? <a href="{{ url_for('login') }}">Sign In</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
