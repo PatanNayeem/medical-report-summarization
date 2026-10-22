@@ -11,14 +11,32 @@ An enterprise-grade, full-stack **Medical Report Summarization & Clinical Decisi
 
 ---
 
+## 🌐 Quick Access & Live Demo Link
+
+When the server is running locally on your system, access the web application directly at:
+
+👉 **[http://localhost:5000](http://localhost:5000)** or **[http://127.0.0.1:5000](http://127.0.0.1:5000)**
+
+### 🔑 Default Doctor Credentials:
+| Portal | Username | Password |
+|---|---|---|
+| **Chief Medical Officer** | `doctor` | `doctor123` |
+
+*(You can also register a new clinical account on the `/register` portal).*
+
+> **💡 Always-Active Local Run**: Double-click [`run_app.bat`](run_app.bat) in the repository folder to instantly launch the server anytime!
+
+---
+
 ## 📌 Project Overview
 
 Medical reports (such as Cardiology evaluations, MRI scans, Pathology tests, and Discharge summaries) are dense, technical, and time-consuming for clinicians to review quickly. This system leverages **Generative AI (GenAI)** and **Retrieval Augmented Generation (RAG)** to automatically parse medical documents, index them into a high-performance vector store, and extract key diagnostic insights into structured clinical briefings.
 
 ### 🌟 Key Highlights
-- **Structured Clinical Summaries**: Automatically parses complex text into 5 core clinical dimensions: Executive Brief, Clinical Impression/Diagnosis, Vital Signs & Lab Parameters, Treatment Plan, and Critical Warnings.
-- **RAG-Powered Interactive Q&A**: Allows doctors and patients to ask natural language questions grounded specifically in the uploaded report context.
-- **Downloadable Clinical PDF Reports**: Generates formatted, printable medical PDF summaries equipped with hospital headers, vital sign tables, and doctor signature blocks.
+- **Mistral-7B AI Summaries**: Uses HuggingFace's `Mistral-7B-Instruct` LLM to generate narrative summaries (Executive Brief, Clinical Impressions, Medications, Warnings, Recommendations).
+- **Zero-Crash Resilient Architecture**: Automatically falls back to deterministic rule-based NLP extraction if no HuggingFace token is provided or if network calls are unavailable.
+- **RAG-Powered Interactive Q&A**: Allows doctors and patients to ask natural language questions grounded strictly in the uploaded medical report context.
+- **Downloadable Clinical PDF Reports**: Generates formatted, printable medical PDF summaries equipped with hospital headers, vital sign tables, doctor signature blocks, and dynamic generation source attribution.
 - **Dual Database Architecture**: Native MongoDB support with automatic, zero-configuration SQLite fallback for seamless execution in any environment.
 
 ---
@@ -47,7 +65,7 @@ graph TD
 | Category | Technology Used | Description |
 |---|---|---|
 | **Backend Framework** | Python 3.10+, Flask | Web routing, session management, REST APIs |
-| **Generative AI Model** | Mistral-7B / HuggingFace | Medical text generation & Prompt Engineering |
+| **Generative AI Model** | Mistral-7B-Instruct / HuggingFace | Medical text generation & Prompt Engineering |
 | **RAG Orchestration** | LangChain | Text chunking, prompt pipelines, RAG retrieval |
 | **Vector Database** | ChromaDB | High-dimensional vector embedding storage & semantic search |
 | **Embeddings Model** | HuggingFace (`all-MiniLM-L6-v2`) | Text-to-Vector embeddings generation |
@@ -63,25 +81,29 @@ graph TD
 2. **Patient Management Module**: Complete Patient CRUD directory (Patient Code, Name, Age, Gender, Blood Group, Pre-existing History).
 3. **PDF Report Upload & Processing**: Drag-and-drop PDF reader with automated NLP text extraction.
 4. **Vectorstore & Semantic Search**: Automated chunking via `RecursiveCharacterTextSplitter` and indexing into ChromaDB.
-5. **AI Summarization Engine**: Structured prompt engineering targeting diagnoses, vitals, prescriptions, and warnings.
-6. **Contextual Q&A Assistant**: Real-time RAG chatbot allowing users to ask questions grounded in report context.
-7. **PDF Summary Exporter**: Instant downloadable, printable clinical summary report with hospital letterhead styling.
+5. **AI Summarization Engine**: Mistral-7B prompt engineering targeting diagnoses, vitals, prescriptions, and warnings with deterministic rule-based fallback.
+6. **Contextual Q&A Assistant**: Real-time RAG chatbot allowing users to ask questions grounded strictly in report context.
+7. **PDF Summary Exporter**: Instant downloadable, printable clinical summary report with hospital letterhead styling and true source attribution.
 
 ---
 
 ## 📂 Repository Directory Structure
 
 ```
-medical_report_summarizer/
+medical-report-summarization/
 │
 ├── app.py                     # Main Flask web application & API routes
 ├── config.py                  # Environment & app configuration settings
 ├── models.py                  # Database abstraction (MongoDB + SQLite fallback)
-├── rag_engine.py              # LangChain + ChromaDB + HuggingFace RAG pipeline
+├── rag_engine.py              # LangChain + ChromaDB + Mistral-7B LLM client & RAG pipeline
 ├── pdf_generator.py           # ReportLab PDF summary generation utility
 ├── create_sample_pdfs.py      # Script to generate sample medical PDFs for testing
+├── test_llm_integration.py    # Unit tests for LLM integration & fallback mechanisms
 ├── requirements.txt           # Python dependencies list
+├── .env.example               # Environment variables template
 ├── .gitignore                 # Excluded git build files & local database entries
+├── run_app.bat                # 1-click portable Windows application launcher
+├── LICENSE                    # MIT Open Source License
 ├── README.md                  # Detailed project documentation
 │
 ├── templates/                 # Jinja2 HTML5 Templates
@@ -106,12 +128,10 @@ medical_report_summarizer/
 
 ## 🔧 Step-by-Step Installation & Setup Guide
 
-Follow these step-by-step instructions to clone, set up, and run the project locally.
-
 ### Step 1: Clone the Repository
 ```bash
-git clone https://github.com/YOUR_USERNAME/medical-report-summarizer.git
-cd medical-report-summarizer
+git clone https://github.com/PatanNayeem/medical-report-summarization.git
+cd medical-report-summarization
 ```
 
 ### Step 2: Create a Virtual Environment (Recommended)
@@ -131,31 +151,42 @@ cd medical-report-summarizer
 pip install -r requirements.txt
 ```
 
-### Step 4: Generate Demo Test Data (Optional)
-Run the built-in generator script to create sample medical PDF reports in the `uploads/` directory:
+### Step 4: Configure Environment Variables (Optional)
+Copy the `.env.example` file to `.env`:
 ```bash
-python create_sample_pdfs.py
+cp .env.example .env
+```
+To enable live Mistral-7B API generation, add your HuggingFace API Token:
+```env
+HUGGINGFACE_API_TOKEN=hf_your_token_here
+MODEL_ID=mistralai/Mistral-7B-Instruct-v0.2
+```
+*(If no token is supplied, the app automatically runs in rule-based NLP mode with zero crashes).*
+
+### Step 5: Run the Verification Tests
+```bash
+python test_llm_integration.py
+```
+Expected output:
+```text
+PASS 1 fallback when no token
+PASS 2 LLM output merged
+PASS 3 bad output handled
+PASS 4 Q&A with LLM and fallback
+PASS 5 PDF footer
+ALL TESTS PASSED
 ```
 
-### Step 5: Run the Flask Web Server
-```bash
-python app.py
-```
+### Step 6: Start the Application
+- **Direct Command**:
+  ```bash
+  python app.py
+  ```
+- **Or on Windows (1-Click)**: Double-click `run_app.bat`
 
-### Step 6: Open the Application
-Navigate to `http://127.0.0.1:5000` in your web browser.
-
----
-
-## 🔑 Demo Login Credentials
-
-The system comes pre-seeded with a default doctor account for instant testing:
-
-| Role | Username | Password |
-|---|---|---|
-| **Chief Medical Officer** | `doctor` | `doctor123` |
-
-*(You can also register a new account on the `/register` page).*
+### Step 7: Open the Application
+Open your browser and navigate to:
+👉 **[http://localhost:5000](http://localhost:5000)**
 
 ---
 
@@ -170,12 +201,29 @@ The system comes pre-seeded with a default doctor account for instant testing:
 
 ---
 
+## ☁️ Deploying Live Online 24/7 (Free Hosting Options)
+
+To keep the application accessible live to anyone on the web at all times:
+
+1. **Render (Recommended Free Web Service)**:
+   - Create an account on [render.com](https://render.com).
+   - Click **New** -> **Web Service** -> Connect this GitHub repository (`PatanNayeem/medical-report-summarization`).
+   - Set Build Command: `pip install -r requirements.txt`
+   - Set Start Command: `gunicorn app:app` (or `python app.py`)
+   - Add Environment Variables (`SECRET_KEY`, `HUGGINGFACE_API_TOKEN`).
+
+2. **Hugging Face Spaces**:
+   - Create a new Space on [huggingface.co/spaces](https://huggingface.co/spaces) with SDK set to **Docker** or **Gradio/Flask**.
+   - Sync this repository to provide instant public access.
+
+---
+
 ## 🤝 Contributing
 
-Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/YOUR_USERNAME/medical-report-summarizer/issues).
+Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/PatanNayeem/medical-report-summarization/issues).
 
 ---
 
 ## 📜 License
 
-Distributed under the MIT License. See `LICENSE` for details.
+Distributed under the MIT License. See [`LICENSE`](LICENSE) for details.
