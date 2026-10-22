@@ -4,7 +4,7 @@ pymongo
 langchain
 langchain-community
 chromadb
-huggingface-hub
+huggingface_hub
 sentence-transformers
 pypdf
 reportlab

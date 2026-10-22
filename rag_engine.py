@@ -32,6 +32,82 @@ def extract_text_from_pdf(pdf_path):
     return text.strip()
 
 
+class LLMClient:
+    """
+    Calls Mistral-7B-Instruct through the HuggingFace Inference API.
+    generate() returns None when no token is set or the call fails,
+    so the app falls back to rule-based extraction instead of crashing.
+    """
+
+    def __init__(self):
+        self.client = None
+        if Config.HUGGINGFACE_API_TOKEN:
+            try:
+                from huggingface_hub import InferenceClient
+                self.client = InferenceClient(
+                    model=Config.MODEL_ID, token=Config.HUGGINGFACE_API_TOKEN, timeout=60
+                )
+            except Exception as e:
+                print(f"LLM client init failed, using rule-based fallback: {e}")
+
+    @property
+    def available(self):
+        return self.client is not None
+
+    def generate(self, prompt, max_tokens=700):
+        if not self.client:
+            return None
+        try:
+            # Mistral-7B-Instruct-v0.2 has no system role, so everything goes in one user message
+            resp = self.client.chat_completion(
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=max_tokens,
+                temperature=0.2,
+            )
+            return resp.choices[0].message.content.strip()
+        except Exception as e:
+            print(f"LLM call failed, using fallback: {e}")
+            return None
+
+
+def _as_list(value):
+    """Normalise LLM output to a list of non-empty strings."""
+    if isinstance(value, str):
+        value = [value]
+    if isinstance(value, list):
+        return [str(v).strip() for v in value if str(v).strip()]
+    return []
+
+
+def parse_llm_summary(raw):
+    """
+    Pull the first JSON object out of the model reply and validate it.
+    Returns a dict containing only valid keys, or {} if nothing usable.
+    """
+    if not raw:
+        return {}
+    match = re.search(r"\{.*\}", raw, re.DOTALL)
+    if not match:
+        return {}
+    try:
+        data = json.loads(match.group(0))
+    except Exception:
+        return {}
+    if not isinstance(data, dict):
+        return {}
+
+    result = {}
+    brief = data.get("executive_summary")
+    if isinstance(brief, str) and brief.strip():
+        result["executive_summary"] = brief.strip()
+    for key in ("clinical_impression", "medications_and_treatments",
+                "risk_factors_and_warnings", "recommendations"):
+        items = _as_list(data.get(key))
+        if items:
+            result[key] = items
+    return result
+
+
 class RAGEngine:
     def __init__(self):
         self.embeddings = None
@@ -116,8 +192,9 @@ class RAGEngine:
 
 
 class MedicalSummarizerEngine:
-    def __init__(self, rag_engine=None):
+    def __init__(self, rag_engine=None, llm=None):
         self.rag_engine = rag_engine or RAGEngine()
+        self.llm = llm or LLMClient()
 
     def generate_clinical_summary(self, report_id, full_text):
         """
@@ -160,15 +237,42 @@ class MedicalSummarizerEngine:
             "risk_factors_and_warnings": risks if risks else ["Routine clinical monitoring recommended. Watch for persistent symptoms."],
             "recommendations": recommendations if recommendations else ["Follow up with primary care physician in 7 to 14 days or as needed."],
             "risk_level": "High" if any(w in full_text.lower() for w in ["severe", "critical", "acute", "carcinoma", "fracture", "high risk", "infarct"]) else "Moderate" if any(w in full_text.lower() for w in ["elevated", "mild", "borderline", "chronic"]) else "Low",
-            "key_metrics": self._extract_numeric_metrics(full_text)
+            "key_metrics": self._extract_numeric_metrics(full_text),
+            "generated_by": "Rule-based extraction"
         }
-        
+
+        # LLM step: Mistral-7B writes the narrative sections from the report text.
+        # Numeric metrics and risk level stay rule-based (deterministic and checkable).
+        prompt = (
+            "You are a clinical documentation assistant. Using ONLY the medical report below, "
+            "reply with a single JSON object and nothing else, with these keys: "
+            "executive_summary (string, 2-3 sentences), clinical_impression (list of strings), "
+            "medications_and_treatments (list of strings), risk_factors_and_warnings (list of strings), "
+            "recommendations (list of strings). Do not invent facts that are not in the report.\n\n"
+            f"REPORT:\n{full_text[:6000]}"
+        )
+        llm_fields = parse_llm_summary(self.llm.generate(prompt, max_tokens=800))
+        if llm_fields:
+            summary_dict.update(llm_fields)
+            summary_dict["generated_by"] = "Mistral-7B-Instruct (RAG + rules)"
+
         return summary_dict
 
     def answer_patient_question(self, report_id, full_text, question):
         """Answer doctor or patient questions using context retrieved via RAG."""
         context = self.rag_engine.query_context(report_id, question, full_text)
-        
+
+        # Grounded generation: the model may only use the retrieved chunks
+        prompt = (
+            "Answer the question using ONLY the report context below. "
+            "If the answer is not in the context, reply exactly: Not found in the report.\n\n"
+            f"CONTEXT:\n{context}\n\nQUESTION: {question}"
+        )
+        llm_answer = self.llm.generate(prompt, max_tokens=300)
+        if llm_answer:
+            return llm_answer
+
+        # Fallback when the LLM is unavailable: show the retrieved passages
         q_lower = question.lower()
         if "medication" in q_lower or "medicine" in q_lower or "drug" in q_lower:
             ans = f"Based on the medical report context:\n\n{context}\n\n**Key Prescriptions/Medications Identified**: Make sure to adhere to dosage instructions and consult your attending physician before modifying any prescription."
@@ -223,7 +327,6 @@ class MedicalSummarizerEngine:
 
         if not metrics:
             metrics = [
-                {"name": "Report Completeness", "value": "100%", "unit": "Parsed"},
-                {"name": "AI Confidence Score", "value": "96.4%", "unit": "Mistral-7B"}
+                {"name": "Report Length", "value": str(len(text.split())), "unit": "words"}
             ]
         return metrics
